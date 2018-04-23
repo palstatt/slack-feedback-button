@@ -1,47 +1,114 @@
 import React, { Component } from 'react'
-import PropTypes from 'prop-types'
-import styled from 'styled-components'
-import colors from '../colors'
 import axios from 'axios'
+import { easing, tween, spring } from 'popmotion'
+import { withCookies } from 'react-cookie'
+import posed, { PoseGroup } from 'react-pose'
+import styled from 'styled-components'
+
+import formatMessage from './format-slack-message'
+import colors from '../colors'
 import image from '../images/Paul.jpg'
+import TextareaAutosize from 'react-autosize-textarea'
 
-const rowHeight = 40
+const customEnterTransition = (props) => tween({
+      ...props,
+      duration: 150,
+      ease: easing.easeIn
+  })
 
-const FormContainer = styled.div`
+const customExitTransition = (props) => tween({
+      ...props,
+      duration: 150,
+      ease: easing.easeOut
+  })
+
+const formContainerProps = {
+  enter: {
+    opacity: 1,
+    y: '0%',
+    transition: props => customEnterTransition(props),
+  },
+  exit: {
+    opacity: 0,
+    y: '10%',
+    transition: props => customExitTransition(props),
+  }
+}
+const FormContainer = styled(posed.div(formContainerProps))`
   box-shadow: ${colors.shadow};
-  background: none;
+  position: fixed;
+  bottom: 144px;
+  right: 40px;
+  z-index: 100;
+  background: transparent;
   display: flex;
   flex-direction: column;
   width: 320px;
-  min-height: 216px;
   border-radius: 8px;
   user-select: none;
 `
 
-const HeaderContainer = styled.div`
+const headerContainerProps = {
+  staggerChildren: true,
+}
+const HeaderContainer = styled(posed.div(headerContainerProps))`
   background: ${colors.primary};
-  position: relative;
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
   border-radius: 8px 8px 0 0;
-  min-height: 160px;
-  padding-top: 48px;
+  height: 160px;
+  padding: 16px;
+  transform-origin: center top;
 `
 
-const Title = styled.h1`
+const titleProps = {
+  enter: {
+    y: '0%',
+    opacity: 1,
+    transition: props => customEnterTransition(props)
+  },
+  exit: {
+    y: '20%',
+    opacity: 0,
+    transition: props => customEnterTransition(props)
+  }
+}
+const Title = styled(posed.h1(titleProps))`
   color: ${colors.white};
-  text-align: 'center';
+  text-align: center;
   font-size: 1.75rem;
   font-weight: bold;
-  line-height: 3rem;
-  margin: 0 0;
+  line-height: 2rem;
+  margin: 32px 0 0 0;
   padding: 0;
   user-select: none;
 `
 
-const TeamMemberAvatar = styled.img.attrs({
+const teamMemberAvatarProps = {
+  initialPose: 'exit',
+  enter: {
+    scale: 1,
+    y: '0%',
+    transition: props => spring({
+      ...props,
+      stiffness: 250,
+      dampening: 1000,
+    })
+  },
+  exit: {
+    scale: 0,
+    y: '100%',
+    transition: props => spring({
+      ...props,
+      stiffness: 250,
+      dampening: 1000,
+    })
+  }
+}
+const TeamMemberAvatar = styled(posed.img(teamMemberAvatarProps)).attrs({
   alt: 'Team Member',
 })`
   position: absolute;
@@ -56,6 +123,56 @@ const TeamMemberAvatar = styled.img.attrs({
   user-select: none;
 `
 
+const SubText = styled.div`
+  color: ${colors.white};
+  text-align: center;
+  font-size: .8rem;
+  margin: 0 0;
+  padding: 0;
+  user-select: none;
+  cursor: pointer;
+`
+
+const namePageProps = {
+  enter: {
+    x: '0%',
+    opacity: 1,
+  },
+  exit: {
+    x: '-100%',
+    opacity: 0,
+  }
+}
+const NamePage = styled(posed.div(namePageProps))`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+`
+
+const feedbackPageProps = {
+  enter: {
+    x: '0%',
+    opacity: 1,
+  },
+  exit: {
+    x: '100%',
+    opacity: 0,
+  }
+}
+const FeedbackPage = styled(posed.div(feedbackPageProps))`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
+`
+
 const TextAreaContainer = styled.div`
   background: ${colors.white};
   display: flex;
@@ -68,15 +185,15 @@ const TextAreaContainer = styled.div`
   border-radius: 0 0 8px 8px;
 `
 
-const FeedbackTextArea = styled.textarea.attrs({
-  placeholder: 'Type feedback here...',
+const FeedbackTextArea = styled(TextareaAutosize).attrs({
+  placeholder: props => `Type ${props.retrievecookie ? 'feedback' : 'your name'} here...`,
   autoFocus: true,
 })`
   display: block;
   margin: 0 0;
   padding: 8px 0 8px 0;
   width: 248px;
-  height: ${rowHeight}px;
+  height: 40px;
   border: none;
   font: inherit;
   resize: none;
@@ -88,8 +205,8 @@ const FeedbackTextArea = styled.textarea.attrs({
   }
 `
 
-const SendButton = styled.i.attrs({
-  children: 'send',
+const SubmitButton = styled.i.attrs({
+  children: props => props.retrievecookie ? 'send' : 'arrow_forward',
   className: 'material-icons',
 })`
   position: relative;
@@ -101,20 +218,22 @@ const SendButton = styled.i.attrs({
   transition: .15s ease;
 `
 
-export default class Feedback extends Component {
+class Feedback extends Component {
 
   state = {
     active: false,
     sending: false,
     sent: false,
     error: false,
+    nameSaved: true,
     text: '',
+    name: '',
   }
 
   handleKeyPress = (e) => {
     if(e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      this.handleSend()
+      this.handleSubmit()
       this.setState({text: ''})
     }
   }
@@ -123,41 +242,104 @@ export default class Feedback extends Component {
     this.setState({text: e.target.value})
   }
 
-  handleSend = () => {
-    const { text } = this.state
-    console.log(process.env.REACT_APP_SLACK_WEBHOOK_URL)
-    axios.post(process.env.REACT_APP_SLACK_WEBHOOK_URL, JSON.stringify({text: text}))
-    .then(res => {
-      console.log('success')
-    })
-    .catch(error => {
-      console.log('error type: ', error)
+  handleClearCookie = () => {
+    const { cookies } = this.props
+    cookies.remove('name', {path: '/'})
+    this.setState({
+      name: '',
+      nameSaved: false,
+      text: '',
     })
   }
 
-  render() {
+  handleSaveCookie = () => {
+    const { cookies } = this.props
     const { text } = this.state
+    cookies.set('name', text, {path: '/'} )
+    this.setState({
+      name: text,
+      nameSaved: true,
+      text: '',
+    })
+  }
+
+  handleSubmit = () => {
+    const { nameSaved, text, name } = this.state
+    if(nameSaved) {
+      axios.post(process.env.REACT_APP_SLACK_WEBHOOK_URL, formatMessage(text, name))
+      .then(res => {
+        console.log('success')
+      })
+      .catch(error => {
+        console.log('error type: ', error)
+      })
+    } else {
+      this.handleSaveCookie()
+    }
+  }
+
+  componentWillMount() {
+    const { cookies } = this.props
+    const cookieName = cookies.get('name')
+    console.log(cookieName)
+    if(cookieName) {
+      this.setState({
+        name: cookieName,
+        nameSaved: true,
+      })
+    } else {
+      this.setState({
+        name: '',
+        nameSaved: false,
+      })
+    }
+  }
+
+  render() {
+    const { nameSaved, text, name } = this.state
+    const { active } = this.props
     const canSend = text.length > 0
     return (
-      <FormContainer>
+      <FormContainer pose={active ? 'enter' : 'exit'}>
         <HeaderContainer>
-          <Title>What do you think?</Title>
-          <TeamMemberAvatar
-            src={image}
-          />
+           <TeamMemberAvatar src={image} />
+           <PoseGroup>
+             {nameSaved
+               ?  <FeedbackPage key={2}>
+                    <Title>
+                      {`Hey${name ? ' ' + name : ''}, what do you think?`}
+                    </Title>
+                    <SubText onClick={this.handleClearCookie}>
+                      Not {name}?
+                    </SubText>
+                 </FeedbackPage>
+               : <NamePage key={1}>
+                   <Title>
+                     Can I have you enter your name below?
+                   </Title>
+                   <SubText>
+                     (Your name will be saved for future feedback)
+                   </SubText>
+                 </NamePage>
+             }
+           </PoseGroup>
         </HeaderContainer>
         <TextAreaContainer>
           <FeedbackTextArea
+            retrievecookie={nameSaved}
             value={text}
             onChange={this.handleChange}
             onKeyDown={this.handleKeyPress}
           />
-          <SendButton
+          <SubmitButton
+            retrievecookie={nameSaved}
             active={canSend}
-            onClick={canSend ? this.handleSend : () => {}}
+            onClick={canSend ? this.handleSubmit : () => {}}
           />
         </TextAreaContainer>
       </FormContainer>
     )
   }
 }
+
+export default withCookies(Feedback)
