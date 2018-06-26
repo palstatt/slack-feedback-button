@@ -38,14 +38,14 @@ const ButtonContainer = styled.div`
   background: ${props => props.theme.bg};
   border: 4px solid ${props => props.theme.border};
   position: fixed;
-  bottom: 40px;
-  right: 40px;
+  bottom: ${props => props.small ? 24 : 40}px;
+  right: ${props => props.small ? 24 : 40}px;
   z-index: 100;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 80px;
-  width: 80px;
+  height: ${props => props.small ? 56 : 80}px;
+  width: ${props => props.small ? 56 : 80}px;
   border-radius: 80px;
   cursor: pointer;
   overflow: hidden;
@@ -54,7 +54,9 @@ const ButtonContainer = styled.div`
 `
 
 const IconContainer = styled.div`
-  display: inline-block;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 40px;
   height: 40px;
 `
@@ -70,7 +72,7 @@ const SendIcon = styled(posed.i(sendIconProps)).attrs({
   color: ${props => props.theme.fg};
   position: absolute;
   user-select: none;
-  font-size: 40px;
+  font-size: ${props => props.small ? 32 : 40}px;
   transition: .15s ease;
 `
 
@@ -87,7 +89,7 @@ const CloseIcon = styled(posed.i(closeIconProps)).attrs({
   position: absolute;
   opacity: 0;
   user-select: none;
-  font-size: 40px;
+  font-size: ${props => props.small ? 32 : 40}px;
   transition: .15s ease;
 `
 
@@ -115,17 +117,24 @@ export default class FeedbackButton extends Component {
   }
 
   render() {
-    const { active } = this.props
+    const { active, small } = this.props
     return(
       <ThemeProvider theme={this.getTheme()}>
         <ButtonContainer
+            small={small}
             onClick={() => this.props.onToggle()}
             onMouseEnter={() => this.setState({hover: true})}
             onMouseLeave={() => this.setState({hover: false})}
           >
             <IconContainer>
-              <CloseIcon pose={active ? 'active' : 'inactive'}/>
-              <SendIcon pose={active ? 'active' : 'inactive'}/>
+              <CloseIcon
+                small={small}
+                pose={active ? 'active' : 'inactive'}
+              />
+              <SendIcon
+                small={small}
+                pose={active ? 'active' : 'inactive'}
+              />
             </IconContainer>
           </ButtonContainer>
       </ThemeProvider>

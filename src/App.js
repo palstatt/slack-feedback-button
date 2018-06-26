@@ -18,7 +18,7 @@ class App extends Component {
     active: false,
   }
 
-  handleClick = () => {
+  handleClose = () => {
     this.setState(({active}) => ({active: !active}))
   }
 
@@ -26,10 +26,15 @@ class App extends Component {
     const { active } = this.state
     return (
       <Container>
-        <Feedback active={active}/>
-        <FeedbackButton
+        <Feedback
+          small
           active={active}
-          onToggle={this.handleClick}
+          handleClose={this.handleClose}
+        />
+        <FeedbackButton
+          small
+          active={active}
+          onToggle={this.handleClose}
         />
       </Container>
     );

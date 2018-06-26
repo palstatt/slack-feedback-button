@@ -37,8 +37,8 @@ const formContainerProps = {
 const FormContainer = styled(posed.div(formContainerProps))`
   box-shadow: ${colors.shadow};
   position: fixed;
-  bottom: 144px;
-  right: 40px;
+  bottom: ${props => props.small ? 96 : 144}px;
+  right: ${props => props.small ? 24 : 40}px;
   z-index: 100;
   background: transparent;
   display: flex;
@@ -49,7 +49,15 @@ const FormContainer = styled(posed.div(formContainerProps))`
 `
 
 const headerContainerProps = {
-  staggerChildren: true,
+  enter: {
+    opacity: 1,
+    transition: props => customEnterTransition(props),
+    staggerChildren: 100
+  },
+  exit: {
+    opacity: 0,
+    transition: props => customEnterTransition(props),
+  }
 }
 const HeaderContainer = styled(posed.div(headerContainerProps))`
   background: ${colors.primary};
@@ -59,9 +67,10 @@ const HeaderContainer = styled(posed.div(headerContainerProps))`
   align-items: center;
   width: 100%;
   border-radius: 8px 8px 0 0;
-  height: 160px;
+  min-height: 160px;
   padding: 16px;
   transform-origin: center top;
+  transition: .15s;
 `
 
 const titleProps = {
@@ -127,7 +136,8 @@ const SubText = styled.div`
   color: ${colors.white};
   text-align: center;
   font-size: .8rem;
-  margin: 0 0;
+  line-height: 1rem;
+  margin: 8px 0 0 0;
   padding: 0;
   user-select: none;
   cursor: pointer;
@@ -198,6 +208,7 @@ const FeedbackTextArea = styled(TextareaAutosize).attrs({
   font: inherit;
   resize: none;
   color: ${colors.black};
+  outline: none;
   overflow: visible;
 
   &&::placeholder {
@@ -265,10 +276,13 @@ class Feedback extends Component {
 
   handleSubmit = () => {
     const { nameSaved, text, name } = this.state
+    const { handleClose } = this.props
     if(nameSaved) {
-      axios.post(process.env.REACT_APP_SLACK_WEBHOOK_URL, formatMessage(text, name))
+      this.setState({text: ''})
+      axios.post(process.env.REACT_APP_SLACK_URL, formatMessage(text, name))
       .then(res => {
         console.log('success')
+        handleClose()
       })
       .catch(error => {
         console.log('error type: ', error)
@@ -297,10 +311,13 @@ class Feedback extends Component {
 
   render() {
     const { nameSaved, text, name } = this.state
-    const { active } = this.props
+    const { active, small } = this.props
     const canSend = text.length > 0
     return (
-      <FormContainer pose={active ? 'enter' : 'exit'}>
+      <FormContainer
+        small={small}
+        pose={active ? 'enter' : 'exit'}
+      >
         <HeaderContainer>
            <TeamMemberAvatar src={image} />
            <PoseGroup>
@@ -315,10 +332,10 @@ class Feedback extends Component {
                  </FeedbackPage>
                : <NamePage key={1}>
                    <Title>
-                     Can I have you enter your name below?
+                     Could you enter your name below please?
                    </Title>
                    <SubText>
-                     (Your name will be saved for future feedback)
+                     (Don't worry, I'll save your name for future feedback)
                    </SubText>
                  </NamePage>
              }
